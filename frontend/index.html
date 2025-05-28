@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Upload CSV to DB</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>📁 Upload CSV to Database</h1>
+    <form id="uploadForm">
+      <input type="file" name="csvFile" accept=".csv" required />
+      <button type="submit">Upload</button>
+    </form>
+    <p id="status"></p>
+  </div>
+
+  <script>
+    const form = document.getElementById('uploadForm');
+    const status = document.getElementById('status');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      status.textContent = 'Uploading...';
+
+      try {
+        const res = await fetch('/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (res.ok) {
+          status.textContent = await res.text();
+        } else {
+          status.textContent = 'Upload failed.';
+        }
+      } catch (err) {
+        console.error(err);
+        status.textContent = 'An error occurred.';
+      }
+    });
+  </script>
+</body>
+</html>
