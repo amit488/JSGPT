@@ -39,3 +39,7 @@ build/
 # Frontend build (optional if built separately)
 frontend/dist/
 frontend/build/
+
+#Test file
+backend/Test
+
