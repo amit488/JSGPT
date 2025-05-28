@@ -10,7 +10,7 @@ const PORT = 3000;
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: process.env.CORS_ORIGIN,
 }));
 app.use(express.static(path.join(__dirname, 'frontend')));
 
@@ -25,16 +25,16 @@ const upload = multer({ storage });
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'amitpanda77777@gmail.com',         // Replace with your email
-    pass: 'oehoxhapipobmiwf',                  // Use Gmail App Password (not your Gmail login password)
+    user: process.env.EMAIL_USER,         // Replace with your email
+    pass: process.env.EMAIL_PASS,                  // Use Gmail App Password (not your Gmail login password)
   },
 });
 
 
 function sendEmailNotification(filename) {
   const mailOptions = {
-    from: 'amitpanda77777@gmail.com',
-    to: 'amitpanda77777@gmail.com', // Change to desired recipient
+    from: process.env.EMAIL_FROM,
+    to: process.env.EMAIL_TO, // Change to desired recipient
     subject: 'CSV Upload Successful',
     text: `The file '${filename}' was uploaded and processed successfully.`,
   };

@@ -2,16 +2,18 @@ const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
 const sql = require('mssql');
+require('dotenv').config();
+
 
 const config = {
-    user: 'sa',
-    password: 'Password@',
-    server: 'localhost',
-    port: 1433,
-    database: 'test_db',
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    server: process.env.DB_SERVER,
+    port: parseInt(process.env.DB_PORT),
+    database: process.env.DB_NAME,
     options: {
-        encrypt: false,
-        trustServerCertificate: true,
+        encrypt: process.env.DB_ENCRYPT === 'true',
+        trustServerCertificate: process.env.DB_TRUST_CERT === 'true'
     },
 };
 
@@ -117,13 +119,7 @@ async function importCsvStream(filePath, tableName, email) {
             if (endCalled) await finalize();
         }
 
-        /**
-         * Finalize the import process:
-         *  1. Log upload metadata (filename, table name, row count, email)
-         *  2. Close the dedicated pool
-         *  3. Log a success message
-         *  4. Resolve the promise
-         */
+    
         async function finalize() {
             try {
                 // Log upload metadata
