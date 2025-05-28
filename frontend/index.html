@@ -10,8 +10,13 @@
   <div class="container">
     <h1>📁 Upload CSV to Database</h1>
     <form id="uploadForm">
+      <label>Email Address</label>
+      <input type="email" name="email" placeholder="you@example.com" required />
+
+      <label>Select CSV File</label>
       <input type="file" name="csvFile" accept=".csv" required />
-      <button type="submit">Upload</button>
+
+      <button type="submit">🚀 Upload</button>
     </form>
     <p id="status"></p>
   </div>
@@ -24,6 +29,7 @@
       e.preventDefault();
       const formData = new FormData(form);
       status.textContent = 'Uploading...';
+      status.className = 'status uploading';
 
       try {
         const res = await fetch('/upload', {
@@ -32,13 +38,17 @@
         });
 
         if (res.ok) {
-          status.textContent = await res.text();
+          const message = await res.text();
+          status.textContent = message;
+          status.className = 'status success';
         } else {
-          status.textContent = 'Upload failed.';
+          status.textContent = '❌ Upload failed.';
+          status.className = 'status error';
         }
       } catch (err) {
         console.error(err);
-        status.textContent = 'An error occurred.';
+        status.textContent = '❌ An error occurred.';
+        status.className = 'status error';
       }
     });
   </script>

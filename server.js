@@ -30,6 +30,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+
 function sendEmailNotification(filename) {
   const mailOptions = {
     from: 'amitpanda77777@gmail.com',
@@ -58,9 +59,10 @@ app.post('/upload', upload.single('csvFile'), async (req, res) => {
   const filePath = req.file.path;
   const fileName = req.file.originalname;
   const tableName = path.parse(fileName).name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const email = req.body.email; // <--- Get email
 
   try {
-    await importCsvStream(filePath, tableName);
+    await importCsvStream(filePath, tableName,email);
     sendEmailNotification(fileName);  // Email on successful import
     res.status(200).send('CSV uploaded and inserted successfully!');
   } catch (err) {

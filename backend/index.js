@@ -45,7 +45,7 @@ async function createTable(tableName, columns) {
     `;
     const pool = await sql.connect(config);
     await pool.request().query(createTableSql);
-    console.log(`Table "${tableName}" is ready.`);
+    console.log(`✅ Table "${tableName}" is ready.`);
     return pool;
 }
 
@@ -68,24 +68,26 @@ async function insertBatch(pool, tableName, columns, batch, originalColumns) {
     const columnsSql = columns.map(col => `[${col}]`).join(', ');
     const insertSql = `INSERT INTO [${tableName}] (${columnsSql}) VALUES ${valueRows.join(', ')}`;
     await request.query(insertSql);
+    console.log(`✅ Inserted batch of ${batch.length} rows into "${tableName}"`);
 }
 
 // Log upload history metadata
-async function logUploadHistory(pool, tableName, fileName, rowCount) {
+async function logUploadHistory(pool, tableName, fileName, rowCount, email) {
     const query = `
-        INSERT INTO UploadHistory (filename, tableName, rowCoun)
-        VALUES (@filename, @tableName, @rowCoun);
+        INSERT INTO UploadHistory (filename, tableName, rowCoun, emailid)
+        VALUES (@filename, @tableName, @rowCoun, @emailid);
     `;
     await pool.request()
         .input('filename', sql.NVarChar, fileName)
         .input('tableName', sql.NVarChar, tableName)
         .input('rowCoun', sql.Int, rowCount)
+        .input('emailid', sql.NVarChar, email)
         .query(query);
-    console.log('Upload history logged.');
+    console.log('📊 Upload history logged.');
 }
 
 // Main function to import CSV and log metadata
-async function importCsvStream(filePath, tableName) {
+async function importCsvStream(filePath, tableName, email) {
     return new Promise((resolve, reject) => {
         let originalColumns = [];
         let sanitizedColumns = [];
@@ -98,13 +100,14 @@ async function importCsvStream(filePath, tableName) {
         stream.pause();
 
         stream.on('headers', async (headers) => {
-            originalColumns = headers;
-            sanitizedColumns = sanitizeColumnNames(headers);
-
-            const columnCount = sanitizedColumns.length;
-            maxRowsPerBatch = Math.floor(2100 / columnCount);
-
             try {
+                originalColumns = headers;
+                sanitizedColumns = sanitizeColumnNames(headers);
+
+                const columnCount = sanitizedColumns.length || 1;
+                maxRowsPerBatch = Math.floor(2100 / columnCount);
+                console.log(`🔢 Columns detected: ${columnCount}, Max rows/batch: ${maxRowsPerBatch}`);
+
                 pool = await createTable(tableName, sanitizedColumns);
                 stream.resume();
             } catch (err) {
@@ -137,11 +140,10 @@ async function importCsvStream(filePath, tableName) {
                     totalRows += buffer.length;
                 }
 
-                // Log to uploadhistory after import
-                await logUploadHistory(pool, tableName, path.basename(filePath),totalRows);
+                await logUploadHistory(pool, tableName, path.basename(filePath), totalRows, email);
 
                 if (pool) await pool.close();
-                console.log('CSV import complete.');
+                console.log('✅ CSV import complete.');
                 resolve();
             } catch (err) {
                 reject(err);
