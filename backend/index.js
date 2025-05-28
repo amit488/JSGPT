@@ -70,7 +70,21 @@ async function insertBatch(pool, tableName, columns, batch, originalColumns) {
     await request.query(insertSql);
 }
 
-// Main function to import CSV
+// Log upload history metadata
+async function logUploadHistory(pool, tableName, fileName, rowCount) {
+    const query = `
+        INSERT INTO UploadHistory (filename, tableName, rowCoun)
+        VALUES (@filename, @tableName, @rowCoun);
+    `;
+    await pool.request()
+        .input('filename', sql.NVarChar, fileName)
+        .input('tableName', sql.NVarChar, tableName)
+        .input('rowCoun', sql.Int, rowCount)
+        .query(query);
+    console.log('Upload history logged.');
+}
+
+// Main function to import CSV and log metadata
 async function importCsvStream(filePath, tableName) {
     return new Promise((resolve, reject) => {
         let originalColumns = [];
@@ -78,6 +92,7 @@ async function importCsvStream(filePath, tableName) {
         let pool;
         let buffer = [];
         let maxRowsPerBatch = 500;
+        let totalRows = 0;
 
         const stream = fs.createReadStream(filePath).pipe(csv());
         stream.pause();
@@ -104,6 +119,7 @@ async function importCsvStream(filePath, tableName) {
             if (buffer.length >= maxRowsPerBatch) {
                 try {
                     await insertBatch(pool, tableName, sanitizedColumns, buffer, originalColumns);
+                    totalRows += buffer.length;
                     buffer = [];
                 } catch (err) {
                     reject(err);
@@ -118,7 +134,12 @@ async function importCsvStream(filePath, tableName) {
             try {
                 if (buffer.length > 0) {
                     await insertBatch(pool, tableName, sanitizedColumns, buffer, originalColumns);
+                    totalRows += buffer.length;
                 }
+
+                // Log to uploadhistory after import
+                await logUploadHistory(pool, tableName, path.basename(filePath),totalRows);
+
                 if (pool) await pool.close();
                 console.log('CSV import complete.');
                 resolve();
