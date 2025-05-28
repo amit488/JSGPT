@@ -48,26 +48,29 @@ function sendEmailNotification(filename) {
 }
 
 // Upload Endpoint
-app.post('/upload', upload.single('csvFile'), async (req, res) => {
+app.post('/upload', upload.array('csvFile', 10), async (req, res) => {
   console.log('Upload endpoint hit');
-  console.log(req.file);
+  console.log(req.files);  // note: files, not file
 
-  if (!req.file) {
-    return res.status(400).send('No file uploaded');
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).send('No files uploaded');
   }
 
-  const filePath = req.file.path;
-  const fileName = req.file.originalname;
-  const tableName = path.parse(fileName).name.replace(/[^a-zA-Z0-9_]/g, '_');
-  const email = req.body.email; // <--- Get email
-
   try {
-    await importCsvStream(filePath, tableName,email);
-    sendEmailNotification(fileName);  // Email on successful import
-    res.status(200).send('CSV uploaded and inserted successfully!');
+    // Process files sequentially or in parallel
+    for (const file of req.files) {
+      const filePath = file.path;
+      const fileName = file.originalname;
+      const tableName = path.parse(fileName).name.replace(/[^a-zA-Z0-9_]/g, '_');
+      const email = req.body.email || ''; // You might want to support email per request, or modify accordingly
+
+      await importCsvStream(filePath, tableName, email);
+      sendEmailNotification(fileName);
+    }
+    res.status(200).send('All CSV files uploaded and inserted successfully!');
   } catch (err) {
     console.error('Import error:', err);
-    res.status(500).send('Failed to upload or insert CSV');
+    res.status(500).send('Failed to upload or insert CSV files');
   }
 });
 
